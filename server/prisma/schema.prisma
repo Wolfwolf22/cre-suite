@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  clerkId              String    @unique
+  email                String    @unique
+  name                 String?
+  hasSeenReferralModal Boolean   @default(false)
+  referralOptIn        Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  deals              Deal[]
+  settings           Settings?
+  analytics          Analytics[]
+  referralProfile    ReferralProfile?
+  referralsSent      ReferralRequest[] @relation("SentRequests")
+  referralsReceived  ReferralRequest[] @relation("ReceivedRequests")
+}
+
+model Settings {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  companyName     String?
+  agentName       String?
+  licenseNumber   String?
+  officeAddress   String?
+  city            String?
+  state           String?
+  zip             String?
+  phone           String?
+  email           String?
+  website         String?
+  logoPath        String?
+  primaryColor    String?  @default("#C8472A")
+  tagline         String?
+  specialty       String[]
+  yearsExperience Int?
+  bio             String?
+  referralVisible Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Deal {
+  id             String    @id @default(cuid())
+  userId         String
+  address        String
+  propertyType   String
+  status         String    @default("Active")
+  closingDate    DateTime?
+  finalSalePrice Float?
+  commission     Float?
+  closingNotes   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents      Document[]
+  propertyData   PropertyData[]
+  cashFlows      CashFlow[]
+  debtAnalyses   DebtAnalysis[]
+  comps          Comp[]
+  analytics      Analytics[]
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  dealId    String
+  type      String
+  content   Json?
+  filePath  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model PropertyData {
+  id       String   @id @default(cuid())
+  dealId   String
+  rawData  Json
+  source   String
+  pulledAt DateTime @default(now())
+
+  deal     Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model CashFlow {
+  id        String   @id @default(cuid())
+  dealId    String
+  inputs    Json
+  outputs   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model DebtAnalysis {
+  id        String   @id @default(cuid())
+  dealId    String
+  inputs    Json
+  outputs   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model Comp {
+  id         String    @id @default(cuid())
+  dealId     String
+  address    String
+  salePrice  Float?
+  capRate    Float?
+  date       DateTime?
+  source     String?
+  createdAt  DateTime  @default(now())
+
+  deal       Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model Analytics {
+  id        String   @id @default(cuid())
+  userId    String
+  toolName  String
+  action    String
+  dealId    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: SetNull)
+}
+
+model ReferralProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  isOptedIn       Boolean  @default(false)
+  isVisible       Boolean  @default(false)
+  specialty       String[]
+  state           String?
+  yearsExperience Int?
+  bio             String?
+  dealsCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ReferralRequest {
+  id              String   @id @default(cuid())
+  fromUserId      String
+  toUserId        String
+  dealDescription String?
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+
+  fromUser        User     @relation("SentRequests", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser          User     @relation("ReceivedRequests", fields: [toUserId], references: [id], onDelete: Cascade)
+}
